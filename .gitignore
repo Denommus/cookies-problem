@@ -1,0 +1,9 @@
+packages
+build
+bin
+Content
+deploy
+.fake
+.paket/paket.exe
+obj
+Scripts

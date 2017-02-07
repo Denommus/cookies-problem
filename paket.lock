@@ -1,0 +1,23 @@
+FRAMEWORK: >= NET45
+NUGET
+  remote: https://www.nuget.org/api/v2
+    FAKE (4.50)
+    FSharp.Core (4.0.0.1)
+    Microsoft.Owin (3.0.1)
+      Owin (>= 1.0)
+    Mono.Cecil (0.9.6.4)
+    Owin (1.0)
+    Suave (2.0.2)
+      FSharp.Core (>= 4.0.0.1)
+    WebSharper (3.6.7.227)
+    WebSharper.Owin (3.6.5.120)
+      Microsoft.Owin (>= 3.0.1)
+      Owin (>= 1.0)
+      WebSharper (>= 3.6.7.227)
+    WebSharper.Suave (3.6.4.30)
+      Mono.Cecil (>= 0.9.6.1)
+      Suave (>= 1.0)
+      WebSharper (>= 3.6.7.227)
+      WebSharper.Owin (>= 3.6.5.120)
+    WebSharper.UI.Next (3.6.6.202)
+      WebSharper (>= 3.6.7.227)
