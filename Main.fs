@@ -1,5 +1,20 @@
 namespace cookietest
 
+open Owin
+open Microsoft.Owin
+open Microsoft.Owin.Security.Cookies
+open Microsoft.AspNet.Identity
+
+type Startup() =
+    member this.Configuration(builder: IAppBuilder) =
+        let options = new CookieAuthenticationOptions(LoginPath = new PathString("/"),
+                                                      AuthenticationType = DefaultAuthenticationTypes.ApplicationCookie,
+                                                      CookieSecure = CookieSecureOption.Always)
+        printfn "Test"
+        builder.UseCookieAuthentication(options) |> ignore
+        builder.UseExternalSignInCookie(DefaultAuthenticationTypes.ExternalCookie)
+        ()
+
 open WebSharper
 open WebSharper.Sitelets
 open WebSharper.UI.Next
@@ -35,14 +50,23 @@ module Templating =
         )
 
 module Site =
+    [<assembly: OwinStartup(typeof<Startup>)>]
+    do ()
     open WebSharper.UI.Next.Html
-    open Microsoft.Owin
     open System.Web
+    open System.Security.Claims
+    open Microsoft.Owin.Security
+
+    let getClaims() =
+        let claims = [new Claim(ClaimTypes.Email, "foo@bar.com")]
+        claims
 
     let HomePage (ctx : Context<EndPoint>) =
         let owinctx = ctx.Environment.Item "OwinContext" :?> IOwinContext
-        ctx.Request.Cookies.Add(new HttpCookie("Foo", "Bar"))
-        owinctx.Authentication.SignIn()
+        printfn "%O" owinctx.Authentication
+        owinctx.Authentication.SignOut(DefaultAuthenticationTypes.ApplicationCookie)
+        owinctx.Authentication.SignIn(new AuthenticationProperties(IsPersistent = true),
+                                      new ClaimsIdentity(getClaims(), DefaultAuthenticationTypes.ApplicationCookie))
         Templating.Main ctx EndPoint.Home "Home" [
             h1 [text "Say Hi to the server!"]
             div [client <@ Client.Main() @>]

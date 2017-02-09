@@ -1,2 +1,5 @@
 WebSharper.UI.Next
 WebSharper.Suave
+Microsoft.Owin.Security.Cookies
+Microsoft.Owin.Host.SystemWeb
+Microsoft.AspNet.Identity.Owin
