@@ -5,16 +5,6 @@ open Microsoft.Owin
 open Microsoft.Owin.Security.Cookies
 open Microsoft.AspNet.Identity
 
-type Startup() =
-    member this.Configuration(builder: IAppBuilder) =
-        let options = new CookieAuthenticationOptions(LoginPath = new PathString("/"),
-                                                      AuthenticationType = DefaultAuthenticationTypes.ApplicationCookie,
-                                                      CookieSecure = CookieSecureOption.Always)
-        printfn "Test"
-        builder.UseCookieAuthentication(options) |> ignore
-        builder.UseExternalSignInCookie(DefaultAuthenticationTypes.ExternalCookie)
-        ()
-
 open WebSharper
 open WebSharper.Sitelets
 open WebSharper.UI.Next
@@ -49,24 +39,48 @@ module Templating =
             )
         )
 
+
+
 module Site =
-    [<assembly: OwinStartup(typeof<Startup>)>]
-    do ()
     open WebSharper.UI.Next.Html
-    open System.Web
     open System.Security.Claims
-    open Microsoft.Owin.Security
+    open Microsoft.Owin.Builder
+    open Suave.Owin
+    open Microsoft.Owin.Security.DataProtection
+    open global.Owin.Security.AesDataProtectorProvider
+    open global.Owin.Security.AesDataProtectorProvider.CrypticProviders
+
+    let authMiddleware =
+        let builder = new AppBuilder()
+        builder.SetDataProtectionProvider(new AesDataProtectorProvider(new Sha512ManagedFactory(),
+                                                                       new Sha256ManagedFactory(),
+                                                                       new AesManagedFactory()))
+        let options = new CookieAuthenticationOptions(LoginPath = new PathString("/"),
+                                                      AuthenticationType = DefaultAuthenticationTypes.ApplicationCookie,
+                                                      CookieSecure = CookieSecureOption.SameAsRequest)
+        let builder = builder.UseCookieAuthentication(options)
+        builder.UseExternalSignInCookie(DefaultAuthenticationTypes.ExternalCookie)
+        builder.Properties.Add("host.AppName", "Themis")
+        printfn "Failing"
+        let app = builder.Build()
+        printfn "Not failing"
+        OwinApp.ofAppFunc "/" app
+
 
     let getClaims() =
         let claims = [new Claim(ClaimTypes.Email, "foo@bar.com")]
         claims
+    open Microsoft.Owin.Security
 
     let HomePage (ctx : Context<EndPoint>) =
+        printfn "Test"
         let owinctx = ctx.Environment.Item "OwinContext" :?> IOwinContext
-        printfn "%O" owinctx.Authentication
         owinctx.Authentication.SignOut(DefaultAuthenticationTypes.ApplicationCookie)
         owinctx.Authentication.SignIn(new AuthenticationProperties(IsPersistent = true),
                                       new ClaimsIdentity(getClaims(), DefaultAuthenticationTypes.ApplicationCookie))
+        printfn "%O" (owinctx.Authentication.AuthenticationResponseGrant.Principal.Claims.GetEnumerator())
+        let user = new ClaimsPrincipal(owinctx.Authentication.AuthenticationResponseGrant.Principal)
+        printfn "%O" System.Web.HttpContext.Current
         Templating.Main ctx EndPoint.Home "Home" [
             h1 [text "Say Hi to the server!"]
             div [client <@ Client.Main() @>]
@@ -91,12 +105,15 @@ module Site =
     open System
     open System.IO
     open System.Reflection
+    open Suave.Operators
+    open Suave.WebPart
 
     let codeBase = Assembly.GetEntryAssembly().CodeBase
     let builder = UriBuilder(codeBase)
     let pathToAssembly = Uri.UnescapeDataString(builder.Path)
     let rootPath = Path.GetDirectoryName(Path.Combine(pathToAssembly, "../../"))
     (*let debugConfig = { defaultConfig with logger = Loggers.saneDefaultsFor LogLevel.Verbose }*)
+    let debugConfig = { defaultConfig with logger = Targets.create Verbose [||] }
 
-    do startWebServer defaultConfig (WebSharperAdapter.ToWebPart (Main, RootDirectory=rootPath))
 
+    do startWebServer debugConfig (choose [WebSharperAdapter.ToWebPart (Main, RootDirectory=rootPath); authMiddleware])

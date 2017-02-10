@@ -7,3 +7,4 @@ nuget WebSharper.UI.Next 3.6.6.202
 nuget Microsoft.Owin.Security.Cookies
 nuget Microsoft.Owin.Host.SystemWeb
 nuget Microsoft.AspNet.Identity.Owin
+nuget Owin.Security.AesDataProtectorProvider
